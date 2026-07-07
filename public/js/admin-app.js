@@ -346,7 +346,7 @@ function renderAdminCats() {
   g.innerHTML = categories.map(c => `
     <div class="a-cat-row" style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid var(--brd);align-items:center">
       <div style="display:flex;align-items:center;gap:12px">
-        <img src="${catImgs.get(c.name) || 'https://placehold.co/50x50'}" style="width:40px;height:40px;object-fit:cover;border-radius:4px" onerror="this.src='https://placehold.co/50x50'">
+        <img src="${catImgs[c.name] || 'https://placehold.co/50x50'}" style="width:40px;height:40px;object-fit:cover;border-radius:4px" onerror="this.src='https://placehold.co/50x50'">
         <strong>${c.name}</strong>
       </div>
       <div style="display:flex;gap:5px;">
@@ -365,8 +365,8 @@ function editCatImg(catName) {
     const f = e.target.files[0];
     if (!f) return;
     compressImage(f, async (compressedBase64) => {
-      catImgs.set(catName, compressedBase64);
-      await apiUpdateSetting({ catImgs: Object.fromEntries(catImgs) });
+      catImgs[catName] = compressedBase64;
+      await apiUpdateSetting({ catImgs: catImgs });
       renderAdminCats();
     });
   };

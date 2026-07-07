@@ -743,7 +743,7 @@ async function fetchLiveStoreData() {
       socLinks = set.socLinks || socLinks;
       DATA.offerTxt = set.offerTxt !== undefined ? set.offerTxt : DATA.offerTxt;
       DATA.offerClr = set.offerClr !== undefined ? set.offerClr : DATA.offerClr;
-      if (set.catImgs) catImgs = new Map(Object.entries(set.catImgs));
+      if (set.catImgs) catImgs = set.catImgs;
       if (set.deliveryCharge !== undefined) deliveryCharge = set.deliveryCharge;
     }
   } catch (err) {

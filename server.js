@@ -78,7 +78,11 @@ var authLimiter = rateLimit({
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: 0,
   etag: false,
-  lastModified: false
+  lastModified: false,
+  setHeaders: function (res, filePath) {
+    if (filePath.endsWith('.css')) res.set('Content-Type', 'text/css');
+    if (filePath.endsWith('.js')) res.set('Content-Type', 'application/javascript');
+  }
 }));
 
 app.use((req, res, next) => {
