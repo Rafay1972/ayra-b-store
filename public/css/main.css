@@ -698,6 +698,10 @@ footer { background: var(--deep); color: #fff; padding: 5rem 1.5rem 2.5rem; }
 @media (max-width: 768px) {
   .hamburger { display: flex; }
   .nav-links  { display: none; }
+  .nav-inner  { justify-content: space-between; }
+  .nav-logo   { position: absolute; left: 50%; transform: translateX(-50%); }
+  .nav-cart span { display: none; }
+  .nav-cart   { padding: 9px; border: none; }
   .sl-slide   { height: 520px; }
   .sl-content { left: 5%; }
   .sl-content h1 { font-size: 38px; }
