@@ -11,7 +11,7 @@ const CACHE_TTL = 30000;
 
 function sanitizeString(val) {
   if (typeof val !== 'string') return '';
-  return validator.escape(validator.trim(val));
+  return validator.escape(validator.unescape(validator.trim(val)));
 }
 
 router.get('/', async function (req, res) {
@@ -19,7 +19,14 @@ router.get('/', async function (req, res) {
     if (cache && (Date.now() - lastCacheTime < CACHE_TTL)) {
       return res.json({ success: true, data: cache });
     }
+    const Product = require('../models/Product');
     var categories = await Category.find().sort({ createdAt: 1 }).lean();
+    
+    // Dynamically calculate counts
+    for (let cat of categories) {
+      cat.count = await Product.countDocuments({ cat: cat.name });
+    }
+    
     cache = categories;
     lastCacheTime = Date.now();
     res.json({ success: true, data: categories });

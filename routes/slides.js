@@ -11,7 +11,7 @@ const CACHE_TTL = 30000;
 
 function sanitizeString(val) {
   if (typeof val !== 'string') return '';
-  return validator.escape(validator.trim(val));
+  return validator.escape(validator.unescape(validator.trim(val)));
 }
 
 router.get('/', async function (req, res) {

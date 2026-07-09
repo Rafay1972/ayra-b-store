@@ -29,7 +29,7 @@ function getDefaultData() {
 
 function safeLS() {
   try { var t='__t__'; localStorage.setItem(t,'1'); localStorage.removeItem(t); return localStorage; }
-  catch(e) { return null; }
+  catch(e) { console.error('[AyraB] localStorage unavailable:', e); return null; }
 }
 var LS = safeLS();
 
@@ -37,15 +37,24 @@ function loadCart() {
   if (!LS) return [];
   try {
     var raw = LS.getItem('ayraB_cart_v1');
-    return raw ? JSON.parse(raw) : [];
-  } catch(e) { return []; }
+    var items = raw ? JSON.parse(raw) : [];
+    // Normalize: ensure every item has a strict cartKey
+    for (var i = 0; i < items.length; i++) {
+      if (!items[i].cartKey) {
+        items[i].cartKey = items[i].variant
+          ? (items[i].id + '::' + items[i].variant)
+          : items[i].id;
+      }
+    }
+    return items;
+  } catch(e) { console.error('[AyraB] Failed to load cart:', e); return []; }
 }
 
 function persistCart() {
   if (!LS) return;
   try {
     LS.setItem('ayraB_cart_v1', JSON.stringify(cart));
-  } catch(e) {}
+  } catch(e) { console.error('[AyraB] Failed to persist cart:', e); }
 }
 
 /* --- SECTION 3: GLOBAL STATE ------------------------------- */
@@ -154,7 +163,7 @@ function addToCart(id, variantLabel) {
 
 function removeFromCart(cartKey) {
   var nc = [];
-  for (var i = 0; i < cart.length; i++) { if ((cart[i].cartKey || cart[i].id) !== cartKey) nc.push(cart[i]); }
+  for (var i = 0; i < cart.length; i++) { if (cart[i].cartKey !== cartKey) nc.push(cart[i]); }
   cart = nc;
   persistCart();
   updCartUI();
@@ -162,7 +171,7 @@ function removeFromCart(cartKey) {
 
 function changeQty(cartKey, delta) {
   for (var i = 0; i < cart.length; i++) {
-    if ((cart[i].cartKey || cart[i].id) === cartKey) {
+    if (cart[i].cartKey === cartKey) {
       cart[i].qty = Math.max(1, (cart[i].qty || 1) + delta);
       break;
     }
@@ -200,7 +209,7 @@ function updCartUI() {
 
   body.innerHTML = cart.map(function(c) {
     var itemTotal = priceNum(c.price) * c.qty;
-    var ck = (c.cartKey || c.id).replace(/'/g, "\\'");
+    var ck = c.cartKey.replace(/'/g, "\\'");
     var variantLine = c.variant ? '<div style="font-size:12px;color:var(--acc);margin-top:2px">' + c.variant + '</div>' : '';
     return '<div class="cp-item">' +
       '<img class="cp-item-img" src="' + (c.img || 'https://placehold.co/90x110/F5ECD9/B8935A?text=Suit') + '" alt="' + c.name + '" onerror="this.src=\'https://placehold.co/90x110/F5ECD9/B8935A?text=Suit\'">' +
@@ -434,6 +443,171 @@ function filterCat(key) {
   }, 80);
 }
 
+function applyPromo() {
+  var code = ((document.getElementById('promoInput') || {}).value || '').trim().toUpperCase();
+  var msgEl = document.getElementById('promoMsg');
+  if (!code) { if(msgEl){msgEl.textContent='Please enter a promo code.';msgEl.className='promo-msg err';} return; }
+  if (PROMOS[code] !== undefined) {
+    promoDiscount = PROMOS[code];
+    promoCode = code;
+    if(msgEl){msgEl.textContent='\u2713 ' + promoDiscount + '% discount applied!';msgEl.className='promo-msg ok';}
+    updCartUI();
+    notify(promoDiscount + '% discount applied!', 'ok');
+  } else {
+    promoDiscount = 0; promoCode = '';
+    if(msgEl){msgEl.textContent='Invalid promo code. Try AYRA10 or AYRA20.';msgEl.className='promo-msg err';}
+  }
+}
+
+function openWA(txt) {
+  var msg = txt ? '*Inquiry \u2014 Ayra B.*\n\n*Topic:* ' + txt + '\n\nPlease share details.' : waMsg;
+  window.open('https://wa.me/' + waPhone + '?text=' + encodeURIComponent(msg), '_blank');
+}
+
+function goSoc(p) {
+  var url = socLinks[p];
+  if (url) { window.open(url, '_blank'); }
+  else { notify('Add ' + p + ' link in the Admin Panel.', 'info'); }
+}
+
+/* --- SECTION 7: SLIDER ------------------------------------- */
+
+var WA_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>';
+var CART_SVG14 = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>';
+var CART_SVG18 = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>';
+
+function buildSlider() {
+  var track = document.getElementById('slTrack');
+  var dots  = document.getElementById('slDots');
+  if (!track || !dots) return;
+  track.innerHTML = ''; dots.innerHTML = '';
+
+  slides.forEach(function(sl, i) {
+    var div = document.createElement('div');
+    div.className = 'sl-slide';
+    div.innerHTML =
+      '<img src="' + sl.img + '" alt="' + sl.title + '" loading="' + (i === 0 ? 'eager' : 'lazy') + '" onerror="this.style.opacity=0;this.parentElement.style.background=\'linear-gradient(135deg,#2D1B35,#5C2D5C)\'">' +
+      '<div class="sl-grad"></div>' +
+      '<div class="sl-content">' +
+        '<span class="sl-tag">' + sl.tag + '</span>' +
+        '<h1>' + sl.title + '</h1>' +
+        '<p>' + sl.desc + '</p>' +
+        '<div class="sl-btns">' +
+          '<button class="sl-btn-primary" onclick="filterCat(\'' + sl.catKey + '\')">' + sl.btn + '</button>' +
+          '<button class="sl-btn-ghost" onclick="openWA(\'\')">' + WA_SVG + ' WhatsApp Order</button>' +
+        '</div>' +
+      '</div>';
+    track.appendChild(div);
+
+    var d = document.createElement('button');
+    d.className = 'sl-dot' + (i === 0 ? ' active' : '');
+    d.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+    d.addEventListener('click', (function(idx) { return function() { goSlide(idx); }; })(i));
+    dots.appendChild(d);
+  });
+
+  clearInterval(slTimer);
+  slTimer = setInterval(function() { chSlide(1); }, 5000);
+}
+
+function chSlide(dir) {
+  currentSlide = (currentSlide + dir + slides.length) % slides.length;
+  updSlide();
+  clearInterval(slTimer);
+  slTimer = setInterval(function() { chSlide(1); }, 5000);
+}
+
+function goSlide(i) {
+  currentSlide = i;
+  updSlide();
+  clearInterval(slTimer);
+  slTimer = setInterval(function() { chSlide(1); }, 5000);
+}
+
+function updSlide() {
+  var track = document.getElementById('slTrack');
+  if (track) track.style.transform = 'translateX(-' + (currentSlide * 100) + '%)';
+  var dots = document.querySelectorAll('.sl-dot');
+  for (var i = 0; i < dots.length; i++) {
+    dots[i].className = 'sl-dot' + (i === currentSlide ? ' active' : '');
+  }
+}
+
+/* --- SECTION 8: PRODUCTS ----------------------------------- */
+
+function catKeyFor(name) {
+  if (name === 'All Suits') return 'All';
+  return name;
+}
+
+function renderProds(filter) {
+  filter = filter || 'All';
+  var g = document.getElementById('prodGrid');
+  if (!g) return;
+  g.innerHTML = '';
+  var list = products.filter(function(p) { return filter === 'All' || p.cat === filter; });
+
+  if (list.length === 0) {
+    g.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--mut);font-size:15px;">No products found in this category.</div>';
+    return;
+  }
+
+  list.forEach(function(p) {
+    var d = document.createElement('div');
+    d.className = 'pcard';
+    var imgSrc = (p.imgs && p.imgs.length > 0) ? p.imgs[0] : 'https://placehold.co/400x340/F5ECD9/B8935A?text=Suit';
+    var isOutOfStock = (p.stock !== undefined && p.stock <= 0 && (!p.variants || p.variants.length === 0));
+    d.innerHTML =
+      '<div class="pcard-img">' +
+        '<img src="' + imgSrc + '" alt="' + p.name + '" loading="lazy" onerror="this.src=\'https://placehold.co/400x340/F5ECD9/B8935A?text=Suit\'">' +
+        '<span class="pcard-badge ' + (p.badge === 'sale' ? 'badge-sale' : 'badge-new') + '">' + (p.badge === 'sale' ? 'Sale' : 'New') + '</span>' +
+        (isOutOfStock ? '<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.7);color:#fff;padding:8px 20px;border-radius:4px;font-weight:700;font-size:14px;letter-spacing:1px">SOLD OUT</span>' : '') +
+      '</div>' +
+      '<div class="pcard-body">' +
+        '<div class="pcard-name">' + p.name + '</div>' +
+        '<div class="pcard-cat">' + p.cat + ' Collection</div>' +
+        '<div class="pcard-stars"><span class="stars">' + starStr(p.rating) + '</span><span class="scount">' + p.rating + ' (' + p.reviews + ' reviews)</span></div>' +
+        '<div class="pcard-prices"><span class="price-cur">' + p.price + '</span>' + (p.old ? '<span class="price-old">' + p.old + '</span>' : '') + '</div>' +
+        '<div class="pcard-actions">' +
+          (isOutOfStock
+            ? '<button class="btn-add-cart" disabled style="opacity:0.5;cursor:not-allowed">Sold Out</button>'
+            : '<button class="btn-add-cart" onclick="event.stopPropagation();addToCart(\'' + p.id + '\')">' + CART_SVG14 + ' Add to Cart</button>') +
+          '<button class="btn-wish" aria-label="Wishlist">&#9825;</button>' +
+        '</div>' +
+      '</div>';
+    d.addEventListener('click', (function(id) { return function() { openDetail(id); }; })(p.id));
+    g.appendChild(d);
+  });
+}
+
+function renderCats() {
+  var g = document.getElementById('catGrid');
+  if (!g) return;
+  g.innerHTML = '';
+  categories.forEach(function(c) {
+    var key = catKeyFor(c.name);
+    var img = catImgs[c.name] || 'https://placehold.co/300x280/F5ECD9/B8935A?text=Category';
+    var d = document.createElement('div');
+    d.className = 'cat-tile';
+    d.innerHTML =
+      '<img src="' + img + '" alt="' + c.name + '" loading="lazy" onerror="this.src=\'https://placehold.co/300x280/F5ECD9/B8935A?text=Category\'">' +
+      '<div class="cat-overlay"></div>' +
+      '<div class="cat-info"><h3>' + c.name + '</h3><span>' + c.count + ' items</span></div>' +
+      '<button class="cat-shop-btn" onclick="event.stopPropagation();filterCat(\'' + key + '\')">Shop Now</button>';
+    d.addEventListener('click', (function(k) { return function() { filterCat(k); }; })(key));
+    g.appendChild(d);
+  });
+}
+
+function filterCat(key) {
+  renderProds(key);
+  showPage('pgMain');
+  setTimeout(function() {
+    var el = document.getElementById('prods');
+    if (el) window.scrollTo({ top: el.offsetTop - 70, behavior: 'smooth' });
+  }, 80);
+}
+
 /* --- SECTION 9: PRODUCT DETAIL ----------------------------- */
 
 function openDetail(id) {
@@ -441,9 +615,9 @@ function openDetail(id) {
   for (var i = 0; i < products.length; i++) { if (products[i].id === id) { p = products[i]; break; } }
   if (!p) return;
 
-  document.getElementById('detBread').textContent = p.name;
-  document.getElementById('detName').textContent  = p.name;
-  document.getElementById('detCat').textContent   = p.cat + ' Collection';
+  document.getElementById('detBread').innerHTML = p.name;
+  document.getElementById('detName').innerHTML  = p.name;
+  document.getElementById('detCat').innerHTML   = p.cat + ' Collection';
 
   var badge = document.getElementById('detBadge');
   badge.textContent = p.badge === 'new' ? 'New Arrival' : 'On Sale';
@@ -451,9 +625,9 @@ function openDetail(id) {
 
   document.getElementById('detStars').textContent = starStr(p.rating);
   document.getElementById('detRc').textContent    = '(' + p.reviews + ' reviews)';
-  document.getElementById('detPrice').textContent = p.price;
-  document.getElementById('detOld').textContent   = p.old || '';
-  document.getElementById('detDesc').textContent  = p.desc;
+  document.getElementById('detPrice').innerHTML = p.price;
+  document.getElementById('detOld').innerHTML   = p.old || '';
+  document.getElementById('detDesc').innerHTML  = p.desc;
 
   var featsHtml = '';
   if (p.features && Array.isArray(p.features)) {
@@ -745,6 +919,12 @@ async function fetchLiveStoreData() {
       DATA.offerClr = set.offerClr !== undefined ? set.offerClr : DATA.offerClr;
       if (set.catImgs) catImgs = set.catImgs;
       if (set.deliveryCharge !== undefined) deliveryCharge = set.deliveryCharge;
+      // Website UI toggles (default to true if not set)
+      DATA.showOfferBanner = set.showOfferBanner !== undefined ? set.showOfferBanner : true;
+      DATA.autoPlaySlide   = set.autoPlaySlide   !== undefined ? set.autoPlaySlide   : true;
+      DATA.showWishlist    = set.showWishlist    !== undefined ? set.showWishlist    : true;
+      DATA.showStarRatings = set.showStarRatings !== undefined ? set.showStarRatings : true;
+      DATA.showSoc         = set.showSoc         !== undefined ? set.showSoc         : true;
     }
   } catch (err) {
     console.warn('Failed to load live data, using fallback.', err);
@@ -767,9 +947,25 @@ async function init() {
 
   // Offer bar
   var offerEl = document.getElementById('offerTxt');
-  if (offerEl) offerEl.innerHTML = DATA.offerTxt;
   var barEl = document.querySelector('.offer-bar');
-  if (barEl && DATA.offerClr) barEl.style.background = DATA.offerClr;
+  if (DATA.showOfferBanner === false) {
+    if (barEl) barEl.style.display = 'none';
+  } else {
+    if (offerEl) offerEl.innerHTML = DATA.offerTxt;
+    if (barEl && DATA.offerClr) barEl.style.background = DATA.offerClr;
+  }
+
+  // Enforce website UI toggles via CSS injection
+  var toggleStyles = '';
+  if (DATA.showWishlist === false) toggleStyles += '.btn-wish { display: none !important; } ';
+  if (DATA.showStarRatings === false) toggleStyles += '.pcard-stars, .det-rating, .rstars { display: none !important; } ';
+  if (DATA.showSoc === false) toggleStyles += '.f-soc { display: none !important; } ';
+  if (toggleStyles) {
+    var styleEl = document.createElement('style');
+    styleEl.id = 'ayra-toggles';
+    styleEl.textContent = toggleStyles;
+    document.head.appendChild(styleEl);
+  }
 
   // Overlay close handlers
   var mobOv = document.getElementById('mobOverlay');

@@ -198,12 +198,12 @@
 
           <div class="a-panel" id="tSett">
             <div class="a-ph">Website Settings</div>
-            <div class="tog-row"><span class="tog-lbl">Show Offer Banner</span><div class="tog on" onclick="this.classList.toggle('on')"></div></div>
-            <div class="tog-row"><span class="tog-lbl">Auto-play Slideshow</span><div class="tog on" onclick="this.classList.toggle('on')"></div></div>
-            <div class="tog-row"><span class="tog-lbl">Show Wishlist Button</span><div class="tog on" onclick="this.classList.toggle('on')"></div></div>
-            <div class="tog-row"><span class="tog-lbl">Show Star Ratings</span><div class="tog on" onclick="this.classList.toggle('on')"></div></div>
-            <div class="tog-row"><span class="tog-lbl">Show Social Media Section</span><div class="tog on" onclick="this.classList.toggle('on')"></div></div>
-            <div style="margin-top:1.6rem"><button class="a-save" onclick="notify('Settings saved!','ok')">Save Settings</button></div>
+            <div class="tog-row"><span class="tog-lbl">Show Offer Banner</span><div class="tog on" id="tgOffer" onclick="this.classList.toggle('on')"></div></div>
+            <div class="tog-row"><span class="tog-lbl">Auto-play Slideshow</span><div class="tog on" id="tgSlide" onclick="this.classList.toggle('on')"></div></div>
+            <div class="tog-row"><span class="tog-lbl">Show Wishlist Button</span><div class="tog on" id="tgWish" onclick="this.classList.toggle('on')"></div></div>
+            <div class="tog-row"><span class="tog-lbl">Show Star Ratings</span><div class="tog on" id="tgStars" onclick="this.classList.toggle('on')"></div></div>
+            <div class="tog-row"><span class="tog-lbl">Show Social Media Section</span><div class="tog on" id="tgSoc" onclick="this.classList.toggle('on')"></div></div>
+            <div style="margin-top:1.6rem"><button class="a-save" onclick="saveToggles()">Save Settings</button></div>
           </div>
 
         </div>

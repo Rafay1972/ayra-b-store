@@ -78,6 +78,22 @@ function populateSettings() {
     document.getElementById('sTt').value = socLinks.tiktok || '';
     document.getElementById('sSn').value = socLinks.snap || '';
   }
+
+  // Populate website UI toggles
+  var toggleMap = {
+    'tgOffer': DATA.showOfferBanner,
+    'tgSlide': DATA.autoPlaySlide,
+    'tgWish': DATA.showWishlist,
+    'tgStars': DATA.showStarRatings,
+    'tgSoc': DATA.showSoc
+  };
+  for (var id in toggleMap) {
+    var el = document.getElementById(id);
+    if (el) {
+      if (toggleMap[id] !== false) el.classList.add('on');
+      else el.classList.remove('on');
+    }
+  }
 }
 
 // --- API HELPERS ---
@@ -139,7 +155,7 @@ async function changePw() {
     } else {
       notify(res.error || 'Failed', 'err');
     }
-  } catch (e) { notify('Network error', 'err'); }
+  } catch (e) { console.error('[Admin] Password change failed:', e); notify('Network error', 'err'); }
 }
 
 // --- PRODUCTS ---
@@ -243,38 +259,43 @@ function renderVariants() {
   `).join('');
 }
 
-function compressImage(file, callback) {
+function compressImage(file, callback, maxWidth = 800, quality = 0.7) {
   const reader = new FileReader();
   reader.readAsDataURL(file);
   reader.onload = event => {
     const img = new Image();
     img.src = event.target.result;
     img.onload = () => {
-      const MAX_WIDTH = 800;
       let width = img.width;
       let height = img.height;
-      if (width > MAX_WIDTH) {
-        height = Math.round((height *= MAX_WIDTH / width));
-        width = MAX_WIDTH;
+      if (width > maxWidth) {
+        height = Math.round((height *= maxWidth / width));
+        width = maxWidth;
       }
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
-      callback(canvas.toDataURL('image/jpeg', 0.7));
+      callback(canvas.toDataURL('image/jpeg', quality));
     };
   };
 }
+
+var MAX_IMG_BYTES = 5 * 1024 * 1024; // 5 MB limit per file
 
 function handleImgUpload(e) {
   const files = e.target.files;
   if (!files) return;
   for (let i=0; i<files.length; i++) {
+    if (files[i].size > MAX_IMG_BYTES) {
+      notify('Image "' + files[i].name + '" exceeds 5 MB limit. Please use a smaller file.', 'err');
+      continue;
+    }
     compressImage(files[i], (compressedBase64) => {
       tempImgs.push(compressedBase64);
       renderTempImgs();
-    });
+    }, 1200, 0.85); // High quality for product images
   }
 }
 function renderTempImgs() {
@@ -364,11 +385,15 @@ function editCatImg(catName) {
   input.onchange = (e) => {
     const f = e.target.files[0];
     if (!f) return;
+    if (f.size > MAX_IMG_BYTES) {
+      notify('Image exceeds 5 MB limit. Please use a smaller file.', 'err');
+      return;
+    }
     compressImage(f, async (compressedBase64) => {
       catImgs[catName] = compressedBase64;
       await apiUpdateSetting({ catImgs: catImgs });
       renderAdminCats();
-    });
+    }, 1200, 0.85); // High quality for categories
   };
   input.click();
 }
@@ -449,10 +474,14 @@ function closeSlideModal() { document.getElementById('slideModal').classList.rem
 function handleSlideImg(e) {
   const f = e.target.files[0];
   if (!f) return;
+  if (f.size > MAX_IMG_BYTES) {
+    notify('Image exceeds 5 MB limit. Please use a smaller file.', 'err');
+    return;
+  }
   compressImage(f, (compressedBase64) => {
     tempSlideImg = compressedBase64; 
     document.getElementById('sCurImg').innerHTML = `<img src="${tempSlideImg}" style="width:100%;height:100px;object-fit:cover">`;
-  });
+  }, 2560, 0.95); // Extremely high quality for slider images
 }
 async function saveSlide() {
   const data = {
@@ -488,4 +517,17 @@ async function deleteSlide(id) {
 function exportBackup() { notify('Backup functionality uses database dumps in this version.', 'info'); }
 function importBackup() { notify('Restore functionality uses database dumps in this version.', 'info'); }
 
-
+function saveToggles() {
+  var tgOffer = document.getElementById('tgOffer');
+  var tgSlide = document.getElementById('tgSlide');
+  var tgWish  = document.getElementById('tgWish');
+  var tgStars = document.getElementById('tgStars');
+  var tgSoc   = document.getElementById('tgSoc');
+  apiUpdateSetting({
+    showOfferBanner: tgOffer ? tgOffer.classList.contains('on') : true,
+    autoPlaySlide:   tgSlide ? tgSlide.classList.contains('on') : true,
+    showWishlist:    tgWish  ? tgWish.classList.contains('on')  : true,
+    showStarRatings: tgStars ? tgStars.classList.contains('on') : true,
+    showSoc:         tgSoc   ? tgSoc.classList.contains('on')   : true
+  });
+}

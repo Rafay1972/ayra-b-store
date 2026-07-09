@@ -8,7 +8,7 @@ const validator = require('validator');
 
 function sanitizeString(val) {
   if (typeof val !== 'string') return '';
-  return validator.escape(validator.trim(val));
+  return validator.escape(validator.unescape(validator.trim(val)));
 }
 
 // Get reviews for a product

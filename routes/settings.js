@@ -11,7 +11,7 @@ const CACHE_TTL = 30000;
 
 function sanitizeString(val) {
   if (typeof val !== 'string') return '';
-  return validator.escape(validator.trim(val));
+  return validator.escape(validator.unescape(validator.trim(val)));
 }
 
 router.get('/', async function (req, res) {
@@ -66,6 +66,12 @@ router.put('/', async function (req, res) {
       // Allow base64 or URL strings, max 5 photos
       updates.communityImgs = body.communityImgs.slice(0, 5);
     }
+    // Website UI toggles
+    if (body.showOfferBanner !== undefined) updates.showOfferBanner = !!body.showOfferBanner;
+    if (body.autoPlaySlide !== undefined) updates.autoPlaySlide = !!body.autoPlaySlide;
+    if (body.showWishlist !== undefined) updates.showWishlist = !!body.showWishlist;
+    if (body.showStarRatings !== undefined) updates.showStarRatings = !!body.showStarRatings;
+    if (body.showSoc !== undefined) updates.showSoc = !!body.showSoc;
 
     var settings = await Settings.findOneAndUpdate(
       { key: 'general' },
@@ -107,7 +113,7 @@ router.post('/verify-password', async function (req, res) {
 // Change password
 router.post('/change-password', async function (req, res) {
   try {
-    var currentPw = req.body.currentPassword;
+    var currentPw = req.body.oldPassword || req.body.currentPassword;
     var newPw = req.body.newPassword;
     if (typeof currentPw !== 'string' || typeof newPw !== 'string') {
       return res.status(400).json({ success: false, error: 'Both passwords are required.' });

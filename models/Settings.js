@@ -53,6 +53,26 @@ const settingsSchema = new mongoose.Schema({
   communityImgs: {
     type: [String],
     default: []
+  },
+  showOfferBanner: {
+    type: Boolean,
+    default: true
+  },
+  autoPlaySlide: {
+    type: Boolean,
+    default: true
+  },
+  showWishlist: {
+    type: Boolean,
+    default: true
+  },
+  showStarRatings: {
+    type: Boolean,
+    default: true
+  },
+  showSoc: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true,
