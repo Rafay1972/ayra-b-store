@@ -806,3 +806,9 @@ footer { background: var(--deep); color: #fff; padding: 5rem 1.5rem 2.5rem; }
   .ig-grid { grid-template-columns: repeat(2, 1fr); }
   .hide-mob { display: none; }
 }
+
+/* WhatsApp Float */
+.float-wa { position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; background: #25D366; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1000; transition: transform 0.3s; }
+.float-wa:hover { transform: scale(1.1); }
+.float-wa svg { width: 32px; height: 32px; fill: currentColor; }
+.nav-actions { display: flex; align-items: center; gap: 8px; }

@@ -33,6 +33,56 @@ function safeLS() {
 }
 var LS = safeLS();
 
+var WISH = [];
+var currentCatFilter = 'All';
+function loadWish() {
+  if (!LS) return [];
+  try {
+    var raw = LS.getItem('ayraB_wish_v1');
+    return raw ? JSON.parse(raw) : [];
+  } catch(e) { return []; }
+}
+function saveWish() {
+  if (!LS) return;
+  try { LS.setItem('ayraB_wish_v1', JSON.stringify(WISH)); } catch(e) {}
+}
+function toggleWishlist(id) {
+  var idx = WISH.indexOf(id);
+  if (idx > -1) { WISH.splice(idx, 1); notify('Removed from Wishlist', 'info'); } 
+  else { WISH.push(id); notify('Added to Wishlist!', 'ok'); }
+  saveWish();
+  renderProds(currentCatFilter);
+  renderWishlist();
+}
+function isWished(id) { return WISH.indexOf(id) > -1; }
+function renderWishlist() {
+  var g = document.getElementById('wishGrid');
+  if (!g) return;
+  g.innerHTML = '';
+  if (WISH.length === 0) { g.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--mut);font-size:15px;">Your wishlist is empty.</div>'; return; }
+  var list = products.filter(p => isWished(p.id));
+  if (list.length === 0) { g.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--mut);font-size:15px;">Your wishlist is empty.</div>'; return; }
+  list.forEach(function(p) {
+    var d = document.createElement('div');
+    d.className = 'pcard';
+    var imgSrc = (p.imgs && p.imgs.length > 0) ? p.imgs[0] : 'https://placehold.co/400x340/F5ECD9/B8935A?text=Suit';
+    d.innerHTML = 
+      '<div class="pcard-img"><img src="' + imgSrc + '"></div>' +
+      '<div class="pcard-body">' +
+        '<div class="pcard-name">' + p.name + '</div>' +
+        '<div class="pcard-prices"><span class="price-cur">' + p.price + '</span></div>' +
+        '<div class="pcard-actions">' +
+          '<button class="btn-add-cart" onclick="event.stopPropagation();addToCart(\'' + p.id + '\')">Add to Cart</button>' +
+          '<button class="btn-wish" style="color:red" onclick="event.stopPropagation();toggleWishlist(\'' + p.id + '\')">&#9829;</button>' +
+        '</div>' +
+      '</div>';
+    d.addEventListener('click', function() { openDetail(p.id); });
+    g.appendChild(d);
+  });
+}
+function goWishlist() { showPage('pgWishlist'); renderWishlist(); }
+
+
 function loadCart() {
   if (!LS) return [];
   try {
@@ -422,7 +472,7 @@ function renderProds(filter) {
           (isOutOfStock
             ? '<button class="btn-add-cart" disabled style="opacity:0.5;cursor:not-allowed">Sold Out</button>'
             : '<button class="btn-add-cart" onclick="event.stopPropagation();addToCart(\'' + p.id + '\')">' + CART_SVG14 + ' Add to Cart</button>') +
-          '<button class="btn-wish" aria-label="Wishlist">&#9825;</button>' +
+          '<button class="btn-wish" onclick="event.stopPropagation();toggleWishlist(\'' + p.id + '\')" aria-label="Wishlist" style="'+(isWished(p.id)?'color:red':'')+'">' + (isWished(p.id)?'&#9829;':'&#9825;') + '</button>' +
         '</div>' +
       '</div>';
     d.addEventListener('click', (function(id) { return function() { openDetail(id); }; })(p.id));
@@ -450,6 +500,7 @@ function renderCats() {
 }
 
 function filterCat(key) {
+  currentCatFilter = key;
   renderProds(key);
   showPage('pgMain');
   setTimeout(function() {
@@ -546,81 +597,6 @@ function updSlide() {
   for (var i = 0; i < dots.length; i++) {
     dots[i].className = 'sl-dot' + (i === currentSlide ? ' active' : '');
   }
-}
-
-/* --- SECTION 8: PRODUCTS ----------------------------------- */
-
-function catKeyFor(name) {
-  if (name === 'All Suits') return 'All';
-  return name;
-}
-
-function renderProds(filter) {
-  filter = filter || 'All';
-  var g = document.getElementById('prodGrid');
-  if (!g) return;
-  g.innerHTML = '';
-  var list = products.filter(function(p) { return filter === 'All' || p.cat === filter; });
-
-  if (list.length === 0) {
-    g.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--mut);font-size:15px;">No products found in this category.</div>';
-    return;
-  }
-
-  list.forEach(function(p) {
-    var d = document.createElement('div');
-    d.className = 'pcard';
-    var imgSrc = (p.imgs && p.imgs.length > 0) ? p.imgs[0] : 'https://placehold.co/400x340/F5ECD9/B8935A?text=Suit';
-    var isOutOfStock = (p.stock !== undefined && p.stock <= 0 && (!p.variants || p.variants.length === 0));
-    d.innerHTML =
-      '<div class="pcard-img">' +
-        '<img src="' + imgSrc + '" alt="' + p.name + '" loading="lazy" onerror="this.src=\'https://placehold.co/400x340/F5ECD9/B8935A?text=Suit\'">' +
-        '<span class="pcard-badge ' + (p.badge === 'sale' ? 'badge-sale' : 'badge-new') + '">' + (p.badge === 'sale' ? 'Sale' : 'New') + '</span>' +
-        (isOutOfStock ? '<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.7);color:#fff;padding:8px 20px;border-radius:4px;font-weight:700;font-size:14px;letter-spacing:1px">SOLD OUT</span>' : '') +
-      '</div>' +
-      '<div class="pcard-body">' +
-        '<div class="pcard-name">' + p.name + '</div>' +
-        '<div class="pcard-cat">' + p.cat + ' Collection</div>' +
-        '<div class="pcard-stars"><span class="stars">' + starStr(p.rating) + '</span><span class="scount">' + p.rating + ' (' + p.reviews + ' reviews)</span></div>' +
-        '<div class="pcard-prices"><span class="price-cur">' + p.price + '</span>' + (p.old ? '<span class="price-old">' + p.old + '</span>' : '') + '</div>' +
-        '<div class="pcard-actions">' +
-          (isOutOfStock
-            ? '<button class="btn-add-cart" disabled style="opacity:0.5;cursor:not-allowed">Sold Out</button>'
-            : '<button class="btn-add-cart" onclick="event.stopPropagation();addToCart(\'' + p.id + '\')">' + CART_SVG14 + ' Add to Cart</button>') +
-          '<button class="btn-wish" aria-label="Wishlist">&#9825;</button>' +
-        '</div>' +
-      '</div>';
-    d.addEventListener('click', (function(id) { return function() { openDetail(id); }; })(p.id));
-    g.appendChild(d);
-  });
-}
-
-function renderCats() {
-  var g = document.getElementById('catGrid');
-  if (!g) return;
-  g.innerHTML = '';
-  categories.forEach(function(c) {
-    var key = catKeyFor(c.name);
-    var img = catImgs[c.name] || 'https://placehold.co/300x280/F5ECD9/B8935A?text=Category';
-    var d = document.createElement('div');
-    d.className = 'cat-tile';
-    d.innerHTML =
-      '<img src="' + img + '" alt="' + c.name + '" loading="lazy" onerror="this.src=\'https://placehold.co/300x280/F5ECD9/B8935A?text=Category\'">' +
-      '<div class="cat-overlay"></div>' +
-      '<div class="cat-info"><h3>' + c.name + '</h3><span>' + c.count + ' items</span></div>' +
-      '<button class="cat-shop-btn" onclick="event.stopPropagation();filterCat(\'' + key + '\')">Shop Now</button>';
-    d.addEventListener('click', (function(k) { return function() { filterCat(k); }; })(key));
-    g.appendChild(d);
-  });
-}
-
-function filterCat(key) {
-  renderProds(key);
-  showPage('pgMain');
-  setTimeout(function() {
-    var el = document.getElementById('prods');
-    if (el) window.scrollTo({ top: el.offsetTop - 70, behavior: 'smooth' });
-  }, 80);
 }
 
 /* --- SECTION 9: PRODUCT DETAIL ----------------------------- */
@@ -958,6 +934,10 @@ async function init() {
   var ctaPhone = document.getElementById('ctaPhone');
   if (ctaPhone) ctaPhone.textContent = '+' + waPhone.replace(/^\+/, '');
   var fPhone = document.getElementById('fPhone');
+  if (fPhone) fPhone.textContent = '+' + waPhone.replace(/^\+/, '');
+  
+  var floatWa = document.getElementById('floatWa');
+  if (floatWa) floatWa.href = 'https://wa.me/' + waPhone + '?text=' + encodeURIComponent(waMsg || 'Hello Ayra B.');
   if (fPhone) fPhone.textContent = '+' + waPhone.replace(/^\+/, '');
 
   // Offer bar
