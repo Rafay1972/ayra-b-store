@@ -101,11 +101,26 @@ function starStr(r) {
 
 function priceNum(p) { return parseInt((p || '').replace(/[^0-9]/g, ''), 10) || 0; }
 
+window.addEventListener('scroll', function() {
+  if (window.scrollY > 40) {
+    document.body.classList.add('scrolled');
+  } else {
+    document.body.classList.remove('scrolled');
+  }
+});
+
 function showPage(id) {
   var pages = document.querySelectorAll('.page');
   for (var i = 0; i < pages.length; i++) pages[i].classList.remove('active');
   var t = document.getElementById(id);
   if (t) t.classList.add('active');
+  
+  if (id === 'pgMain') {
+    document.body.classList.add('is-home');
+  } else {
+    document.body.classList.remove('is-home');
+  }
+  
   window.scrollTo(0, 0);
 }
 

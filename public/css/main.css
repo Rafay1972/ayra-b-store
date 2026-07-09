@@ -100,7 +100,24 @@ nav {
   backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--brd);
   position: sticky; top: 0; z-index: 300;
+  transition: background 0.3s ease, border-color 0.3s ease, -webkit-backdrop-filter 0.3s ease, backdrop-filter 0.3s ease;
 }
+
+/* Transparent overlapping navbar logic for Home Page */
+body.is-home:not(.scrolled) nav {
+  background: transparent;
+  border-bottom-color: transparent;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+body.is-home:not(.scrolled) .nav-links a { text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+body.is-home:not(.scrolled) .nav-logo { text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+body.is-home:not(.scrolled) .nav-cart { text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+body.is-home:not(.scrolled) .hamburger { text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+
+body.is-home #pgMain {
+  margin-top: -71px; /* Pull the slider up under the nav */
+}
+
 .nav-inner {
   max-width: 1320px; margin: 0 auto; padding: 0 1.5rem;
   display: flex; align-items: center; height: 70px; gap: 1.5rem;
