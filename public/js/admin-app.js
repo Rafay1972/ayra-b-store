@@ -268,6 +268,12 @@ function compressImage(file, callback, maxWidth = 800, quality = 0.7) {
     img.onload = () => {
       let width = img.width;
       let height = img.height;
+      
+      // BYPASS: If image is already optimized (< 1.5MB) and within width limit, keep 100% original quality
+      if (file.size < 1.5 * 1024 * 1024 && width <= maxWidth) {
+        return callback(event.target.result); 
+      }
+
       if (width > maxWidth) {
         height = Math.round((height *= maxWidth / width));
         width = maxWidth;
