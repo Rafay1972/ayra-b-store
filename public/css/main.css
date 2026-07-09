@@ -332,11 +332,11 @@ body.is-home #pgMain {
   display: flex; will-change: transform;
   transition: transform .75s cubic-bezier(.4,0,.2,1);
 }
-.sl-slide { min-width: 100%; position: relative; overflow: hidden; height: 85vh; max-height: 850px; min-height: 550px; }
+.sl-slide { min-width: 100%; position: relative; overflow: hidden; height: 100vh; min-height: 550px; }
 .sl-slide img {
   width: 100%; height: 100%;
   object-fit: cover;
-  object-position: center 20%;
+  object-position: center top;
   display: block;
 }
 .sl-grad {
