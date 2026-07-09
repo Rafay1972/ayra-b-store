@@ -277,7 +277,7 @@ function compressImage(file, callback, maxWidth = 800, quality = 0.7) {
       canvas.height = height;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
-      callback(canvas.toDataURL('image/jpeg', quality));
+      callback(canvas.toDataURL('image/webp', quality));
     };
   };
 }
@@ -295,7 +295,7 @@ function handleImgUpload(e) {
     compressImage(files[i], (compressedBase64) => {
       tempImgs.push(compressedBase64);
       renderTempImgs();
-    }, 1200, 0.85); // High quality for product images
+    }, 1200, 0.95); // Extremely high quality WebP for product images
   }
 }
 function renderTempImgs() {
@@ -393,7 +393,7 @@ function editCatImg(catName) {
       catImgs[catName] = compressedBase64;
       await apiUpdateSetting({ catImgs: catImgs });
       renderAdminCats();
-    }, 1200, 0.85); // High quality for categories
+    }, 1200, 0.95); // Extremely high quality WebP for categories
   };
   input.click();
 }
@@ -481,7 +481,7 @@ function handleSlideImg(e) {
   compressImage(f, (compressedBase64) => {
     tempSlideImg = compressedBase64; 
     document.getElementById('sCurImg').innerHTML = `<img src="${tempSlideImg}" style="width:100%;height:100px;object-fit:cover">`;
-  }, 2560, 0.95); // Extremely high quality for slider images
+  }, 2560, 1.0); // Maximum quality WebP for slider images
 }
 async function saveSlide() {
   const data = {
