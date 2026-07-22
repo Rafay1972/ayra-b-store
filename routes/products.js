@@ -4,6 +4,7 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 const validator = require('validator');
+const { processImages } = require('../utils/imageHandler');
 
 let cache = null;
 let lastCacheTime = 0;
@@ -56,7 +57,7 @@ router.post('/', async function (req, res) {
     var product = new Product({
       name: sanitizeString(body.name),
       cat: sanitizeString(body.cat),
-      imgs: Array.isArray(body.imgs) ? body.imgs.slice(0, 20) : [],
+      imgs: Array.isArray(body.imgs) ? processImages(body.imgs.slice(0, 20), 'prod') : [],
       badge: body.badge === 'sale' ? 'sale' : 'new',
       price: sanitizeString(body.price),
       old: sanitizeString(body.old || ''),
@@ -84,7 +85,7 @@ router.put('/:id', async function (req, res) {
     var updates = {};
     if (body.name !== undefined) updates.name = sanitizeString(body.name);
     if (body.cat !== undefined) updates.cat = sanitizeString(body.cat);
-    if (body.imgs !== undefined) updates.imgs = Array.isArray(body.imgs) ? body.imgs.slice(0, 20) : [];
+    if (body.imgs !== undefined) updates.imgs = Array.isArray(body.imgs) ? processImages(body.imgs.slice(0, 20), 'prod') : [];
     if (body.badge !== undefined) updates.badge = body.badge === 'sale' ? 'sale' : 'new';
     if (body.price !== undefined) updates.price = sanitizeString(body.price);
     if (body.old !== undefined) updates.old = sanitizeString(body.old);

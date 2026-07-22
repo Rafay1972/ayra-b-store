@@ -259,7 +259,7 @@ function renderVariants() {
   `).join('');
 }
 
-function compressImage(file, callback, maxWidth = 800, quality = 0.7) {
+function compressImage(file, callback, maxWidth = 800, quality = 0.7, maxBypassSize = 1.5 * 1024 * 1024) {
   const reader = new FileReader();
   reader.readAsDataURL(file);
   reader.onload = event => {
@@ -269,8 +269,8 @@ function compressImage(file, callback, maxWidth = 800, quality = 0.7) {
       let width = img.width;
       let height = img.height;
       
-      // BYPASS: If image is already optimized (< 1.5MB) and within width limit, keep 100% original quality
-      if (file.size < 1.5 * 1024 * 1024 && width <= maxWidth) {
+      // BYPASS: If image is already optimized and within width limit, keep 100% original quality
+      if (file.size < maxBypassSize && width <= maxWidth) {
         return callback(event.target.result); 
       }
 
@@ -283,7 +283,9 @@ function compressImage(file, callback, maxWidth = 800, quality = 0.7) {
       canvas.height = height;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
-      callback(canvas.toDataURL('image/webp', quality));
+      
+      const outType = file.type === 'image/jpeg' && quality === 1.0 ? 'image/jpeg' : 'image/webp';
+      callback(canvas.toDataURL(outType, quality));
     };
   };
 }
@@ -307,10 +309,21 @@ function handleImgUpload(e) {
 function renderTempImgs() {
   const c = document.getElementById('mImgPrev');
   if(!c)return;
-  c.innerHTML = tempImgs.map((img, i) => `
-    <div style="position:relative;width:60px;height:60px;border-radius:4px;overflow:hidden;border:1px solid #ddd">
+  c.style.display = 'flex';
+  c.style.gap = '12px';
+  c.style.flexWrap = 'wrap';
+  c.style.marginBottom = '12px';
+  c.style.padding = tempImgs.length ? '12px' : '0';
+  c.style.background = tempImgs.length ? 'var(--surf, #faf6f1)' : 'transparent';
+  c.style.borderRadius = '8px';
+  c.style.border = tempImgs.length ? '1px solid var(--brd, #e5ddd5)' : 'none';
+  if (!tempImgs.length) { c.innerHTML = ''; return; }
+  c.innerHTML = '<div style="width:100%;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--mut,#999);margin-bottom:4px">' + tempImgs.length + ' image' + (tempImgs.length > 1 ? 's' : '') + ' added</div>' +
+    tempImgs.map((img, i) => `
+    <div style="position:relative;width:120px;height:120px;border-radius:6px;overflow:hidden;border:2px solid #d4c8b8;box-shadow:0 2px 6px rgba(0,0,0,0.1)">
       <img src="${img}" style="width:100%;height:100%;object-fit:cover">
-      <div onclick="tempImgs.splice(${i},1);renderTempImgs()" style="position:absolute;top:0;right:0;background:red;color:white;cursor:pointer;width:16px;height:16px;text-align:center;line-height:14px;font-size:10px">&times;</div>
+      <div onclick="tempImgs.splice(${i},1);renderTempImgs()" style="position:absolute;top:2px;right:2px;background:rgba(220,50,50,0.9);color:white;cursor:pointer;width:22px;height:22px;text-align:center;line-height:20px;font-size:14px;font-weight:bold;border-radius:50%">&times;</div>
+      ${i === 0 ? '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.6);color:#fff;font-size:9px;text-align:center;padding:2px;font-weight:700;letter-spacing:.5px">MAIN</div>' : ''}
     </div>
   `).join('');
 }
@@ -373,7 +386,7 @@ function renderAdminCats() {
   g.innerHTML = categories.map(c => `
     <div class="a-cat-row" style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid var(--brd);align-items:center">
       <div style="display:flex;align-items:center;gap:12px">
-        <img src="${catImgs[c.name] || 'https://placehold.co/50x50'}" style="width:40px;height:40px;object-fit:cover;border-radius:4px" onerror="this.src='https://placehold.co/50x50'">
+        <img src="${catImgs[c.name] || 'https://placehold.co/80x80'}" style="width:80px;height:80px;object-fit:cover;border-radius:4px" onerror="this.src='https://placehold.co/80x80'">
         <strong>${c.name}</strong>
       </div>
       <div style="display:flex;gap:5px;">
@@ -388,17 +401,21 @@ function editCatImg(catName) {
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = 'image/*';
+  input.style.display = 'none';
+  document.body.appendChild(input);
   input.onchange = (e) => {
     const f = e.target.files[0];
     if (!f) return;
     if (f.size > MAX_IMG_BYTES) {
       notify('Image exceeds 5 MB limit. Please use a smaller file.', 'err');
+      document.body.removeChild(input);
       return;
     }
     compressImage(f, async (compressedBase64) => {
       catImgs[catName] = compressedBase64;
       await apiUpdateSetting({ catImgs: catImgs });
       renderAdminCats();
+      document.body.removeChild(input);
     }, 1200, 0.95); // Extremely high quality WebP for categories
   };
   input.click();
@@ -487,7 +504,7 @@ function handleSlideImg(e) {
   compressImage(f, (compressedBase64) => {
     tempSlideImg = compressedBase64; 
     document.getElementById('sCurImg').innerHTML = `<img src="${tempSlideImg}" style="width:100%;height:100px;object-fit:cover">`;
-  }, 2560, 1.0); // Maximum quality WebP for slider images
+  }, 3840, 1.0, 5 * 1024 * 1024); // Maximum quality JPEG/WebP for slider images
 }
 async function saveSlide() {
   const data = {
@@ -520,9 +537,41 @@ async function deleteSlide(id) {
   }
 }
 
-function exportBackup() { notify('Backup functionality uses database dumps in this version.', 'info'); }
-function importBackup() { notify('Restore functionality uses database dumps in this version.', 'info'); }
+function exportBackup() {
+  window.open('/api/backup/export', '_blank');
+}
 
+function importBackup(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const json = JSON.parse(e.target.result);
+      if (!confirm('WARNING: This will replace all your current products, categories, and settings. Are you sure?')) {
+        event.target.value = '';
+        return;
+      }
+      notify('Restoring backup, please wait...', 'info');
+      const res = await fetch('/api/backup/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(json)
+      }).then(r => r.json());
+      if (res.success) {
+        notify('Backup restored successfully! Reloading...', 'ok');
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        notify(res.error || 'Restore failed', 'err');
+      }
+    } catch (err) {
+      console.error(err);
+      notify('Invalid backup file', 'err');
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
 function saveToggles() {
   var tgOffer = document.getElementById('tgOffer');
   var tgSlide = document.getElementById('tgSlide');

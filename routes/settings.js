@@ -4,6 +4,7 @@ const express = require('express');
 const router = express.Router();
 const Settings = require('../models/Settings');
 const validator = require('validator');
+const { processImage } = require('../utils/imageHandler');
 
 let cache = null;
 let lastCacheTime = 0;
@@ -56,7 +57,11 @@ router.put('/', async function (req, res) {
       };
     }
     if (body.catImgs !== undefined && typeof body.catImgs === 'object') {
-      updates.catImgs = body.catImgs;
+      const processedCatImgs = {};
+      for (const [key, val] of Object.entries(body.catImgs)) {
+        processedCatImgs[key] = processImage(val, 'cat');
+      }
+      updates.catImgs = processedCatImgs;
     }
     if (body.deliveryCharge !== undefined) {
       var dc = Number(body.deliveryCharge);

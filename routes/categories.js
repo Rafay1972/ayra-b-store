@@ -22,9 +22,18 @@ router.get('/', async function (req, res) {
     const Product = require('../models/Product');
     var categories = await Category.find().sort({ createdAt: 1 }).lean();
     
-    // Dynamically calculate counts
+    // Dynamically calculate counts via aggregation
+    const catNames = categories.map(c => c.name);
+    const counts = await Product.aggregate([
+      { $match: { cat: { $in: catNames } } },
+      { $group: { _id: '$cat', count: { $sum: 1 } } }
+    ]);
+    
+    const countMap = {};
+    for (let c of counts) countMap[c._id] = c.count;
+    
     for (let cat of categories) {
-      cat.count = await Product.countDocuments({ cat: cat.name });
+      cat.count = countMap[cat.name] || 0;
     }
     
     cache = categories;

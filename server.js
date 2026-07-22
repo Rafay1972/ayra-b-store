@@ -17,6 +17,7 @@ const categoryRoutes = require('./routes/categories');
 const slideRoutes = require('./routes/slides');
 const settingsRoutes = require('./routes/settings');
 const reviewRoutes = require('./routes/reviews');
+const backupRoutes = require('./routes/backup');
 
 const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 3000;
@@ -76,9 +77,9 @@ var authLimiter = rateLimit({
 // --- Static Files ---
 
 app.use(express.static(path.join(__dirname, 'public'), {
-  maxAge: 0,
-  etag: false,
-  lastModified: false,
+  maxAge: '1d',
+  etag: true,
+  lastModified: true,
   setHeaders: function (res, filePath) {
     if (filePath.endsWith('.css')) res.set('Content-Type', 'text/css');
     if (filePath.endsWith('.js')) res.set('Content-Type', 'application/javascript');
@@ -86,7 +87,9 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 
 app.use((req, res, next) => {
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  if (req.path.startsWith('/api/')) {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  }
   next();
 });
 
@@ -99,6 +102,7 @@ app.use('/api/settings', apiLimiter, settingsRoutes);
 app.use('/api/settings/verify-password', authLimiter);
 app.use('/api/settings/change-password', authLimiter);
 app.use('/api/reviews', apiLimiter, reviewRoutes);
+app.use('/api/backup', apiLimiter, backupRoutes);
 
 // --- Health Check ---
 

@@ -4,6 +4,7 @@ const express = require('express');
 const router = express.Router();
 const Slide = require('../models/Slide');
 const validator = require('validator');
+const { processImage } = require('../utils/imageHandler');
 
 let cache = null;
 let lastCacheTime = 0;
@@ -36,7 +37,7 @@ router.post('/', async function (req, res) {
       btn: sanitizeString(req.body.btn || 'Shop Now'),
       catKey: sanitizeString(req.body.catKey || ''),
       tag: sanitizeString(req.body.tag || ''),
-      img: req.body.img || ''
+      img: processImage(req.body.img, 'slide') || ''
     });
     var saved = await slide.save();
     cache = null;
@@ -57,7 +58,7 @@ router.put('/:id', async function (req, res) {
     if (req.body.btn !== undefined) updates.btn = sanitizeString(req.body.btn);
     if (req.body.catKey !== undefined) updates.catKey = sanitizeString(req.body.catKey);
     if (req.body.tag !== undefined) updates.tag = sanitizeString(req.body.tag);
-    if (req.body.img !== undefined) updates.img = req.body.img;
+    if (req.body.img !== undefined) updates.img = processImage(req.body.img, 'slide');
 
     var slide = await Slide.findByIdAndUpdate(req.params.id, updates, {
       new: true,
